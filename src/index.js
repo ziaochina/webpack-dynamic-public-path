@@ -17,8 +17,8 @@ class WebpackDynamicPublicPath {
     }
 
     apply(compiler) {
-        compiler.hooks.afterPlugins.tap({name: 'WebpackDynamicPublicPath'}, this.afterPlugins);
-        compiler.hooks.emit.tapPromise({name: 'WebpackDynamicPublicPath'}, this.emit);
+        compiler.hooks.afterPlugins.tap({ name: 'WebpackDynamicPublicPath' }, this.afterPlugins);
+        compiler.hooks.emit.tapPromise({ name: 'WebpackDynamicPublicPath' }, this.emit);
     }
 
     afterPlugins(compilation) {
@@ -48,9 +48,19 @@ class WebpackDynamicPublicPath {
             )
         );
 
-        const replacePromises = fileNames.map(fileName => this.replacePublicPath(fileName, compilation));
+        var replacePromises = fileNames.map(fileName => this.replacePublicPath(fileName, compilation));
 
-        return Promise.all(replacePromises).then(() => console.log('WebpackDynamicPublicPath: publicPath replaced.'));
+        const fileNames4Css = chunks.map(
+            chunk => chunk.files.find(
+                file => file.match(/.*\.css$/)
+            )
+        );
+
+        var replacePromises4Css = fileNames4Css.map(fileName => this.replacePublicPath4Css(fileName, compilation));
+
+        return Promise.all(replacePromises.concat(replacePromises4Css)).then(() => {
+            //console.log('WebpackDynamicPublicPath: publicPath replaced.')
+        });
     }
 
     /**
@@ -67,6 +77,21 @@ class WebpackDynamicPublicPath {
 
             compilation.assets[fileName].source = function () {
                 return source.replace(publicPath, externalPublicPath);
+            };
+
+            resolve();
+        });
+    }
+
+    replacePublicPath4Css(fileName, compilation) {
+        return new Promise((resolve) => {
+            const source = compilation.assets[fileName].source();
+            const publicPath = this.publicPath.replace(/\"/g, '');
+
+            compilation.assets[fileName].source = function () {
+                var reg = new RegExp(publicPath, "g")
+                var ret = source.replace(reg, './');
+                return ret
             };
 
             resolve();
